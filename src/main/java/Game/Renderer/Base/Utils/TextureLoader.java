@@ -1,11 +1,15 @@
 package Game.Renderer.Base.Utils;
 
 
+import Game.Renderer.Base.Window.Window;
 import org.lwjgl.BufferUtils;
+import org.lwjgl.glfw.GLFW;
+import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.stb.STBImage;
 
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.file.Paths;
@@ -72,6 +76,54 @@ public class TextureLoader {
         GL30.glBindTexture(GL11.GL_TEXTURE_2D, 0);
 
         return textureId;
+    }
+
+    public static Object[] loadWindowIconFromClasspath(String resourcePath) {
+        try {
+
+            InputStream inputStream = TextureLoader.class.getClassLoader().getResourceAsStream(resourcePath);
+            if (inputStream == null) {
+                System.err.println("❌ Ícone não encontrado no classpath: " + resourcePath);
+                return null;
+            }
+
+            byte[] bytes = inputStream.readAllBytes();
+            inputStream.close();
+
+            if (bytes.length == 0) {
+                System.err.println("❌ Ícone vazio: " + resourcePath);
+                return null;
+            }
+
+            ByteBuffer buffer = BufferUtils.createByteBuffer(bytes.length);
+            buffer.put(bytes);
+            buffer.flip();
+
+            IntBuffer w = BufferUtils.createIntBuffer(1);
+            IntBuffer h = BufferUtils.createIntBuffer(1);
+            IntBuffer comp = BufferUtils.createIntBuffer(1); // ← ESSENCIAL: não pode ser null!
+
+            ByteBuffer imageBuffer = STBImage.stbi_load_from_memory(buffer, w, h, comp, 4);
+
+            if (imageBuffer == null) {
+                System.err.println("❌ Falha ao decodificar imagem: " + STBImage.stbi_failure_reason());
+                return null;
+            }
+
+            System.out.println("✅ Ícone carregado: " + w.get(0) + "x" + h.get(0) + "px (" +
+                    resourcePath + "), canais originais: " + comp.get(0));
+            return new Object[]{imageBuffer, new int[]{w.get(0), h.get(0)}};
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao carregar ícone: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static void freeWindowIcon(ByteBuffer pixels) {
+        if (pixels != null) {
+            STBImage.stbi_image_free(pixels);
+        }
     }
 
 }

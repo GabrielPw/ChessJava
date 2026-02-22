@@ -25,7 +25,7 @@ void main()
     int col = int(x);
     int row = int(y);
 
-    bool isSelected = all(equal(ivec2(col, 7 - row), selectedCell));
+    bool isSelected = all(equal(ivec2(col, row), selectedCell));
 
     if (isSelected) {
         baseColor = mix(baseColor, vec3(0.2, 0.8, 0.2), 0.6);

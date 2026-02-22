@@ -41,8 +41,8 @@ public class TextRenderer {
 
     public TextRenderer(int bitmapTexture, String fntInfoFilePath, Game.Renderer.Base.Utils.Shader shader, float letterSpacing) {
         this.model = new Matrix4f().identity();
-        this.position = new Vector2f(400, 400.f);
-        this.scale = new Vector2f(12.f, 12.f);
+        this.position = new Vector2f(0, 0);
+        this.scale = new Vector2f(1.f, 1.f);
         this.bitmapTexture = bitmapTexture;
         this.textColor = new Vector3f(1.f, 1.f, 1.f); // white default
         this.shader = shader;
@@ -209,6 +209,26 @@ public class TextRenderer {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public Vector2f measureText(String text) {
+        float totalWidth = 0;
+        int maxHeight = 0;
+        int maxDescender = 0;
+
+        for (char letter : text.toCharArray()) {
+            GlyphData glyph = glyphMap.get(letter);
+            if (glyph == null) continue;
+
+            totalWidth += glyph.xadvance + letterSpacing;
+            maxHeight = Math.max(maxHeight, glyph.height + glyph.yoffset);
+            maxDescender = Math.max(maxDescender, glyph.height - (baseLine - glyph.yoffset));
+        }
+
+        // Altura total = ascender + descender (aproximado via lineHeight)
+        float totalHeight = lineHeight; // ou: maxHeight + maxDescender
+
+        return new Vector2f(totalWidth, totalHeight);
     }
 
     public Shader getShader() {

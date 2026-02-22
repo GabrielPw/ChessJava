@@ -1,13 +1,16 @@
 package Game;
 
-import Game.Chess.Chess;
-import Game.Chess.Core.BoardSpace;
+import Game.ChessLogic.Chess;
+import Game.ChessLogic.Core.BoardSpace;
+import Game.ChessLogic.Core.ColEnum;
 import Game.Renderer.Base.ChessRenderer;
 import Game.Renderer.Base.GUI.TextRenderer;
+import Game.Renderer.Base.GUI.UI.UIManager;
 import Game.Renderer.Base.Utils.*;
 import Game.Renderer.Base.Window.Window;
 import Game.Renderer.Base.Window.WindowInfo;
 import Game.Renderer.Utils.Mouse;
+import Game.Renderer.Utils.MouseState;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL30;
 
@@ -46,6 +49,7 @@ public class GameLoop {
         GL30.glCullFace(GL30.GL_BACK);
         GL30.glEnable(GL30.GL_CULL_FACE);
 
+        window.setWindowIcon("images/chess/logo.png");
         glfwSwapInterval(1); // 1 to enable vSync according to monitor.
 
     }
@@ -53,30 +57,33 @@ public class GameLoop {
     public void run(Chess chess){
 
         TextRenderer textRenderer = new TextRenderer(arialBlackBitmap, FontsPath.FNTINFO_ARIALBLACK_REGULAR, fontShader, 0.f);
-        ChessRenderer chessRenderer = new ChessRenderer(chess.getBoard());
+        UIManager uiManager = new UIManager(textRenderer);
+        ChessRenderer chessRenderer = new ChessRenderer(this.window, chess.getBoard());
 
+        MouseState uiMouseState = new MouseState();
+        MouseState gameMouseState = new MouseState();
         while (!glfwWindowShouldClose(window.getID())){
 
             glfwPollEvents();
-            WindowInfo windowInfo = frameManagement();
-
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+            WindowInfo windowInfo = frameManagement();
+            uiManager.renderAll(windowInfo);
 
-            // input
-            BoardSpace clicked = Mouse.consumeClickedCell(window, chessRenderer.getBoardSprite());
+            uiManager.checkUIClick(window, uiMouseState);
+            boolean hasGameStarted = uiManager.isGameStarted();
 
-            // GameLogic
+            if (hasGameStarted){
 
-            if (clicked != null){
-                chess.onCellClicked(clicked);
+                BoardSpace clicked = Mouse.consumeClickedCell(window, chessRenderer.getBoardSprite(), gameMouseState);
+                if (clicked != null) {
+                    System.out.println("CLICKED: " + ColEnum.fromValue(clicked.col().getIndex()) + clicked.row().getValue());
+                    chess.onCellClicked(clicked);
+                }
+                chessRenderer.run(windowInfo, textRenderer, chess.getSelectedCell());
             }
 
-            // Renderer
-            chessRenderer.run(windowInfo, textRenderer, chess.getSelectedCell());
-
             glfwSwapBuffers(window.getID());
-
         }
 
         glfwDestroyWindow(window.getID());

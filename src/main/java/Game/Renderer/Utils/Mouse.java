@@ -1,16 +1,15 @@
 package Game.Renderer.Utils;
 
-import Game.Chess.Core.Board;
-import Game.Chess.Core.BoardSpace;
-import Game.Chess.Core.ColEnum;
-import Game.Chess.Core.RowEnum;
-import Game.Main;
+import Game.ChessLogic.Core.BoardSpace;
+import Game.ChessLogic.Core.ColEnum;
+import Game.ChessLogic.Core.RowEnum;
 import Game.Renderer.Base.Entities.Sprite;
 import Game.Renderer.Base.Window.Window;
 import org.joml.Vector2f;
 import org.lwjgl.BufferUtils;
 
 import java.nio.DoubleBuffer;
+import java.nio.FloatBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
 
@@ -38,15 +37,30 @@ public class Mouse {
         cursorY.clear();
         glfwGetCursorPos(window.getID(), cursorX, cursorY);
 
-        float x = (float) cursorX.get(0);
-        float y = window.getHeight() - (float) cursorY.get(0);
+        // Obter fator de escala da janela (HiDPI/Retina)
+        FloatBuffer xScale = BufferUtils.createFloatBuffer(1);
+        FloatBuffer yScale = BufferUtils.createFloatBuffer(1);
+        glfwGetWindowContentScale(window.getID(), xScale, yScale);
+
+        float scaleX = xScale.get(0);
+        float scaleY = yScale.get(0);
+
+        // Converter de window coords → framebuffer coords
+        float x = (float) cursorX.get(0) * scaleX;
+        float y = (float) cursorY.get(0) * scaleY; // ainda medido do TOPO
+
+        // Inverter Y para sistema com origem embaixo (usando altura do framebuffer)
+        y = window.getHeight() - y;
 
         return new Vector2f(x, y);
     }
 
-    public static BoardSpace consumeClickedCell(Window window, Sprite boardSprite){
+    public static BoardSpace consumeClickedCell(Window window, Sprite boardSprite, MouseState mouseState){
+        // ✅ Usa o estado isolado do jogo
+        boolean leftC = mouseState.consumeClick(window);
 
-        if (leftClick(window)){
+        if (leftC){
+            System.out.println("consumeClickedCell: true");
 
             Vector2f bottomLeft = new Vector2f(
                     boardSprite.getPosition().x - boardSprite.getScale().x / 2f,
@@ -54,22 +68,20 @@ public class Mouse {
             );
 
             float squareSize = boardSprite.getScale().x / 8f;
+            Vector2f mousePos = getPosition(window); // Mantém a correção de HiDPI que já fizemos
 
-            Vector2f mousePos = getPosition(window);
+            float rawCol = (mousePos.x - bottomLeft.x) / squareSize;
+            float rawRow = (mousePos.y - bottomLeft.y) / squareSize;
 
-            int col = (int) ((mousePos.x - bottomLeft.x) / squareSize);
-            int row = (int) ((mousePos.y - bottomLeft.y) / squareSize);
+            int col = (int) Math.floor(rawCol + 1e-5f);
+            int row = (int) Math.floor(rawRow + 1e-5f);
 
-            // 🔁 inverter o eixo Y (0 embaixo → 0 em cima)
-            row = 7 - row;
-
-            // clamp de segurança
+            // Clamp de segurança
             col = Math.max(0, Math.min(7, col));
             row = Math.max(0, Math.min(7, row));
 
             return new BoardSpace(ColEnum.values()[col], RowEnum.values()[row]);
         }
-
         return null;
     }
 

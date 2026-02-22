@@ -1,10 +1,13 @@
 package Game.Renderer.Base.Window;
 
+import Game.Renderer.Base.Utils.TextureLoader;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -79,7 +82,37 @@ public class Window {
 
     }
 
+    public void setWindowIcon(String resourcePath) {
+        Object[] iconData = TextureLoader.loadWindowIconFromClasspath(resourcePath);
+        if (iconData == null) {
+            System.err.println("⚠️ Ícone não definido — continuando sem ícone personalizado.");
+            return;
+        }
 
+        ByteBuffer pixels = (ByteBuffer) iconData[0];
+        int[] dims = (int[]) iconData[1];
+        int width = dims[0];
+        int height = dims[1];
+
+        // Cria GLFWImage
+        GLFWImage icon = GLFWImage.create();
+        icon.width(width);
+        icon.height(height);
+        icon.pixels(pixels); // setter: associa o buffer
+
+        // Buffer com 1 imagem
+        GLFWImage.Buffer icons = GLFWImage.create(1);
+        icons.put(0, icon);
+        icons.position(0); //  IMPORTANTE: resetar posição do buffer!
+
+        // Define o ícone
+        glfwSetWindowIcon(this.getID(), icons);
+
+        // Libera memória (GLFW já copiou os dados)
+        TextureLoader.freeWindowIcon(pixels);
+
+        System.out.println("🖼️ Ícone da janela definido com sucesso!");
+    }
 
     public void setupScrollCallback(long window) {
         glfwSetScrollCallback(window, (windowHandle, xOffset, yOffset) -> {

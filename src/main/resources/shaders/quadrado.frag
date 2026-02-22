@@ -5,6 +5,7 @@ out vec4 FragColor;
 in vec2 TexCoord;
 
 uniform sampler2D textureBitmap;
+uniform vec3 color;
 
 void main()
 {
